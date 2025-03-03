@@ -89,7 +89,7 @@ def generate_helicorder_route():
     except Exception as e:
         return jsonify({"error": f"Ocurrió un error: {str(e)}"}), 500
 
-# Función para generar sismograma y espectrograma en subgráficos
+# Función para generar sismograma y espectrograma 
 def generate_sismograma(net, sta, loc, cha, start, end):
     try:
         # Construir la URL para descargar datos
@@ -113,8 +113,11 @@ def generate_sismograma(net, sta, loc, cha, start, end):
         times = [start_time + datetime.timedelta(seconds=sec) for sec in tr.times()]
         data = tr.data
 
-        # Crear la figura y los subgráficos
-        fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(10, 8), sharex=True)
+        # Crear la figura con espacios 
+        fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(12, 8), sharex=True)
+        
+        #Ajustar el espacio entre los subgráficos
+        plt.subplots_adjust(hspace=0.4)  # Aumenta el espacio 
 
         # Sismograma (Gráfico superior)
         ax1.plot(times, data, color='black', linewidth=0.8)
