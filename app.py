@@ -109,21 +109,26 @@ def generate_sismograma(net, sta, loc, cha, start, end):
         start_time = tr.stats.starttime.datetime
         times = [start_time + datetime.timedelta(seconds=sec) for sec in tr.times()]
 
-        fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(10, 10))
+        fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(10, 12))  # Aumenta el tamaño vertical
 
+        # Sismograma (manteniendo tu estilo original)
         ax1.plot(times, data, color='black', linewidth=0.8)
-        ax1.set_title(f"Sismograma: {net}.{sta}.{loc}.{cha}\n{start} - {end}")
+        ax1.set_title(f"Universidad Industrial de Santander UIS\nRed Sísmica REDNE\n{start} - {end}")
         ax1.set_xlabel("Tiempo (UTC Colombia)")
         ax1.set_ylabel("Amplitud (M/s)")
         fig.autofmt_xdate()
 
+        station_info = f"{net}.{sta}.{loc}.{cha}"
+        ax1.text(0.02, 0.98, station_info, transform=ax1.transAxes, fontsize=10, verticalalignment='top', bbox=dict(facecolor='white', edgecolor='black'))
+
+        # Espectrograma
         spectrogram(data=data, samp_rate=samp_rate, axes=ax2, show=False)
         ax2.set_title("Espectrograma")
         ax2.set_xlabel("Tiempo (s)")
         ax2.set_ylabel("Frecuencia (Hz)")
 
-        station_info = f"{net}.{sta}.{loc}.{cha}"
-        ax1.text(0.02, 0.98, station_info, transform=ax1.transAxes, fontsize=10, verticalalignment='top', bbox=dict(facecolor='white', edgecolor='black'))
+        # Ajustar el espaciado entre subgráficos
+        plt.tight_layout(rect=[0, 0.03, 1, 0.95])
 
         output_image = io.BytesIO()
         plt.savefig(output_image, format='png', dpi=100, bbox_inches="tight")
