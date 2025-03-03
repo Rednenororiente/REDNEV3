@@ -114,8 +114,8 @@ def generate_sismograma(net, sta, loc, cha, start, end):
         data = tr.data
 
         # Crear la figura y los subgráficos
-        fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(10, 8), sharex=True)
-        plt.subplots_adjust(hspace=0.6)  # Ajusta el espacio entre los subgráficos
+        fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(8, 8), sharex=True)
+        plt.subplots_adjust(hspace=0.9)  # Ajusta el espacio entre los subgráficos
 
         # Sismograma (Gráfico superior)
         ax1.plot(times, data, color='black', linewidth=0.8)
