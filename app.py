@@ -113,11 +113,9 @@ def generate_sismograma(net, sta, loc, cha, start, end):
         times = [start_time + datetime.timedelta(seconds=sec) for sec in tr.times()]
         data = tr.data
 
-        # Crear la figura con espacios 
-        fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(12, 8), sharex=True)
-        
-        #Ajustar el espacio entre los subgráficos
-        plt.subplots_adjust(hspace=0.4)  # Aumenta el espacio 
+        # Crear la figura y los subgráficos
+        fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(10, 8), sharex=True)
+        plt.subplots_adjust(hspace=0.6)  # Ajusta el espacio entre los subgráficos
 
         # Sismograma (Gráfico superior)
         ax1.plot(times, data, color='black', linewidth=0.8)
@@ -132,12 +130,25 @@ def generate_sismograma(net, sta, loc, cha, start, end):
         fs = tr.stats.sampling_rate  # Frecuencia de muestreo
         specgram, freqs, times_spec = plt.specgram(data, NFFT=nfft, Fs=fs, noverlap=nfft//2)
         
-        # Usamos un mapa de colores secuenciales de ObsPy
-        ax2.pcolormesh(times_spec, freqs, 10 * np.log10(specgram), cmap=obspy_sequential, shading='auto')
+        # Usamos un mapa de colores diferente (plasma)
+        cmap = 'plasma'
+
+        # Escala logarítmica de potencia en dB
+        specgram_db = 10 * np.log10(specgram)
+
+        # Ajustar el rango de dB para mejorar la visibilidad:
+        vmin = np.percentile(specgram_db, 5)  # Ajusta al percentil más bajo
+        vmax = np.percentile(specgram_db, 95)  # Ajusta al percentil más alto
+
+        # Graficar el espectrograma con el colormap plasma
+        mesh = ax2.pcolormesh(times_spec, freqs, specgram_db, cmap=cmap, vmin=vmin, vmax=vmax, shading='auto')
+
         ax2.set_xlabel("Tiempo (UTC Colombia)")
         ax2.set_ylabel("Frecuencia (Hz)")
         ax2.set_title("Espectrograma")
-        fig.colorbar(ax2.pcolormesh(times_spec, freqs, 10 * np.log10(specgram), cmap=obspy_sequential, shading='auto'), ax=ax2, label='Potencia (dB)')
+        
+        # Barra de color
+        fig.colorbar(mesh, ax=ax2, label='Potencia (dB)')
 
         # Mejorar presentación
         fig.tight_layout()
