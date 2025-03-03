@@ -92,44 +92,54 @@ def generate_helicorder_route():
 # Función para generar sismograma y espectrograma en subgráficos
 def generate_sismograma(net, sta, loc, cha, start, end):
     try:
+        # Construir la URL para descargar datos
         url = f"http://osso.univalle.edu.co/fdsnws/dataselect/1/query?starttime={start}&endtime={end}&network={net}&station={sta}&location={loc}&channel={cha}&nodata=404"
+        
+        # Realizar la solicitud al servidor remoto
         response = requests.get(url)
         if response.status_code != 200:
             return jsonify({"error": f"Error al descargar datos: {response.status_code}"}), 500
 
+        # Procesar los datos MiniSEED
         mini_seed_data = io.BytesIO(response.content)
         try:
             st = read(mini_seed_data)
         except Exception as e:
             return jsonify({"error": f"Error procesando MiniSEED: {str(e)}"}), 500
 
+        # Crear gráfico del sismograma
         tr = st[0]
-        data = tr.data
-        samp_rate = tr.stats.sampling_rate
         start_time = tr.stats.starttime.datetime
         times = [start_time + datetime.timedelta(seconds=sec) for sec in tr.times()]
+        data = tr.data
 
-        fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(10, 12))  # Aumenta el tamaño vertical
+        # Crear la figura y los subgráficos
+        fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(10, 8), sharex=True)
 
-        # Sismograma (manteniendo tu estilo original)
+        # Sismograma (Gráfico superior)
         ax1.plot(times, data, color='black', linewidth=0.8)
         ax1.set_title(f"Universidad Industrial de Santander UIS\nRed Sísmica REDNE\n{start} - {end}")
-        ax1.set_xlabel("Tiempo (UTC Colombia)")
         ax1.set_ylabel("Amplitud (M/s)")
-        fig.autofmt_xdate()
+        ax1.grid(True)
+        ax1.text(0.02, 0.98, f"{net}.{sta}.{loc}.{cha}", transform=ax1.transAxes, fontsize=10, verticalalignment='top', bbox=dict(facecolor='white', edgecolor='black'))
 
-        station_info = f"{net}.{sta}.{loc}.{cha}"
-        ax1.text(0.02, 0.98, station_info, transform=ax1.transAxes, fontsize=10, verticalalignment='top', bbox=dict(facecolor='white', edgecolor='black'))
-
-        # Espectrograma
-        spectrogram(data=data, samp_rate=samp_rate, axes=ax2, show=False)
-        ax2.set_title("Espectrograma")
-        ax2.set_xlabel("Tiempo (s)")
+        # Espectro (Gráfico inferior)
+        # Calculamos el espectrograma
+        nfft = 128  # Número de puntos para FFT
+        fs = tr.stats.sampling_rate  # Frecuencia de muestreo
+        specgram, freqs, times_spec = plt.specgram(data, NFFT=nfft, Fs=fs, noverlap=nfft//2)
+        
+        # Usamos un mapa de colores secuenciales de ObsPy
+        ax2.pcolormesh(times_spec, freqs, 10 * np.log10(specgram), cmap=obspy_sequential, shading='auto')
+        ax2.set_xlabel("Tiempo (UTC Colombia)")
         ax2.set_ylabel("Frecuencia (Hz)")
+        ax2.set_title("Espectrograma")
+        fig.colorbar(ax2.pcolormesh(times_spec, freqs, 10 * np.log10(specgram), cmap=obspy_sequential, shading='auto'), ax=ax2, label='Potencia (dB)')
 
-        # Ajustar el espaciado entre subgráficos
-        plt.tight_layout(rect=[0, 0.03, 1, 0.95])
+        # Mejorar presentación
+        fig.tight_layout()
 
+        # Guardar el gráfico en memoria
         output_image = io.BytesIO()
         plt.savefig(output_image, format='png', dpi=100, bbox_inches="tight")
         output_image.seek(0)
@@ -139,6 +149,29 @@ def generate_sismograma(net, sta, loc, cha, start, end):
 
     except Exception as e:
         return jsonify({"error": f"Ocurrió un error: {str(e)}"}), 500
+
+# Rutas para generar el gráfico
+@app.route('/generate_sismograma', methods=['GET'])
+def generate_sismograma_route():
+    try:
+        # Extraer parámetros de la solicitud
+        start = request.args.get('start')
+        end = request.args.get('end')
+        net = request.args.get('net')
+        sta = request.args.get('sta')
+        loc = request.args.get('loc')
+        cha = request.args.get('cha')
+
+        # Validar los parámetros
+        if not all([start, end, net, sta, loc, cha]):
+            return jsonify({"error": "Faltan parámetros requeridos"}), 400
+
+        # Llamar a la función de generación de sismogramas
+        return generate_sismograma(net, sta, loc, cha, start, end)
+
+    except Exception as e:
+        return jsonify({"error": f"Ocurrió un error: {str(e)}"}), 500
+
 
 # Función para generar un helicorder
 def generate_helicorder(net, sta, loc, cha, start, end):
